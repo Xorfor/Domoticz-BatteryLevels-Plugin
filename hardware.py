@@ -10,4 +10,3 @@ class hardware:
     PHILIPS_HUE_BRIDGE = 38
 
     hardware = {OPENZWAVE_USB, PHILIPS_HUE_BRIDGE}
-

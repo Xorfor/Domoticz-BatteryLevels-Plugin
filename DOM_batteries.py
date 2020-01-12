@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 #
 import Domoticz
-from DOM_API import *
+from DOM_API import DOM_API
 from hardware import *
 
 
@@ -18,6 +18,7 @@ class DOM_Batteries:
         self.__dom_api = DOM_API()
 
     def nodes(self):
+        Domoticz.Debug("{}.nodes".format(self.__class__.__name__))
         self.__init_nodes()
         return self.__nodes
 

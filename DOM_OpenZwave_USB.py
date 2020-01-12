@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 #
 import Domoticz
-from DOM_API import *
+from DOM_API import DOM_API
 from hardware import *
 
 
@@ -15,6 +15,7 @@ class DOM_OpenZwave_USB:
         self.__dom_api = DOM_API()
 
     def nodes(self):
+        Domoticz.Debug("{}.nodes".format(self.__class__.__name__))
         self.__init_nodes()
         return self.__nodes
 
@@ -34,4 +35,30 @@ class DOM_OpenZwave_USB:
                     )
                     hwid = result_dict.get("idx")
                     # type=command&param=zwavegetbatterylevels&idx={}
-
+                    nodes = self.__dom_api.DOM_result(
+                        "type=command&param=zwavegetbatterylevels&idx={}".format(hwid)
+                    )
+                    for node in nodes:
+                        battery = node["battery"]
+                        if battery != 255:  # Domoticz standard: 255 = no battery
+                            nodeID = node.get("nodeID")
+                            nodeName = node.get("nodeName")
+                            Domoticz.Debug(
+                                "{}: Found device with battery: {} on {}".format(
+                                    self.__class__.__name__,
+                                    nodeID,
+                                    nodeName,
+                                )
+                            )
+                            # Make sure that the device id is unique
+                            deviceid = "{}-{}".format(
+                                hwid, nodeID
+                            )
+                            if deviceid not in self.__nodes:
+                                self.__nodes[deviceid] = {}
+                                self.__nodes[deviceid]["name"] = nodeName
+                            #
+                            self.__nodes[deviceid]["battery"] = battery
+            Domoticz.Debug(
+                "{}: nodes: {}".format(self.__class__.__name__, self.__nodes)
+            )

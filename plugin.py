@@ -20,8 +20,9 @@
 import Domoticz
 from enum import IntEnum, unique  # , auto
 from hardware import *
-from DOM_batteries import *
-from DOM_Philips_Hue_Bridge import *
+from DOM_batteries import DOM_Batteries
+from DOM_Philips_Hue_Bridge import DOM_Philips_Hue_Bridge
+from DOM_OpenZwave_USB import DOM_OpenZwave_USB
 
 @unique
 class used(IntEnum):
@@ -70,7 +71,10 @@ class BasePlugin:
     ########################################################################################
 
     def __init__(self):
-        self.__runAgain = 0
+        self.__dom_hue = None
+        self.__dom_bat = None
+        self.__dom_zwave = None
+        self.__runAgain = 4
 
     def on_command(self, unit, command, level, hue):
         Domoticz.Debug(
@@ -104,7 +108,7 @@ class BasePlugin:
             nodes = self.__dom_bat.nodes()
         #
         if self.__runAgain == 3:
-            pass
+            nodes = self.__dom_zwave.nodes()
         #
         if nodes:
             for deviceid, values in nodes.items():
@@ -206,6 +210,7 @@ class BasePlugin:
         #
         self.__dom_hue = DOM_Philips_Hue_Bridge()
         self.__dom_bat = DOM_Batteries()
+        self.__dom_zwave = DOM_OpenZwave_USB()
 
     def on_stop(self):
         Domoticz.Debug("{}: onstop".format(self.__class__.__name__))
