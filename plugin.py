@@ -57,7 +57,7 @@ class BasePlugin:
     """
 
     __HEARTBEATS2MIN = 6
-    __MINUTES = 1
+    __MINUTES = 1 # Now: update every minute for debugging. Will be 60 (every hour) in the future.
 
     ########################################################################################
 
@@ -99,15 +99,17 @@ class BasePlugin:
         Domoticz.Debug("{}: on_heartbeat".format(self.__class__.__name__))
         self.__runAgain -= 1
         nodes = None
+        # There is no need to monitor all device at once. So check the hardware every heartbeat one.
         if self.__runAgain == 1:
-            #
             # Find/update Philips Hue battery devices
             nodes = self.__dom_hue.nodes()
         #
         if self.__runAgain == 2:
+            # Find/update Domoticz battery devices
             nodes = self.__dom_bat.nodes()
         #
         if self.__runAgain == 3:
+            # Find/update Open Z-Wave USB battery devices
             nodes = self.__dom_zwave.nodes()
         #
         if nodes:
@@ -208,6 +210,7 @@ class BasePlugin:
         # log config
         config_2_log()
         #
+        # Initialize all hardware classes
         self.__dom_hue = DOM_Philips_Hue_Bridge()
         self.__dom_bat = DOM_Batteries()
         self.__dom_zwave = DOM_OpenZwave_USB()
