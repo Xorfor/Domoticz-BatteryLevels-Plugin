@@ -18,12 +18,10 @@
 </plugin>
 """
 import Domoticz
-import urllib.parse as parse
-import urllib.request as request
-import socket
-import json
 from enum import IntEnum, unique  # , auto
-
+from hardware import *
+from DOM_batteries import *
+from DOM_Philips_Hue_Bridge import *
 
 @unique
 class used(IntEnum):
@@ -63,10 +61,10 @@ class BasePlugin:
     ########################################################################################
 
     __IMAGES = {
-        "batteryfull": "batteryfull.zip",
-        "batterymedium": "batterymedium.zip",
-        "batterylow": "batterylow.zip",
-        "batteryempty": "batteryempty.zip",
+        "full": "full.zip",
+        "medium": "medium.zip",
+        "low": "low.zip",
+        "empty": "empty.zip",
     }
 
     ########################################################################################
@@ -136,18 +134,21 @@ class BasePlugin:
                         Used=used.YES,
                     ).Create()
                 battery = values["battery"]
-                update_device_value(
-                    unit, nValue=battery, sValue=str(battery), TimedOut=False
-                )
+                image_key = Parameters["Key"] + "_"
                 if battery >= level.FULL:
-                    image_key = "batteryfull"
+                    image_key += "full"
                 elif battery >= level.MEDIUM:
-                    image_key = "batterymedium"
+                    image_key += "medium"
                 elif battery >= level.LOW:
-                    image_key = "batterylow"
+                    image_key += "low"
                 else:
-                    image_key = "batteryempty"
-                update_device_image(unit=unit, image_id=Images[image_key].ID)
+                    image_key += "empty"
+                update_device(
+                    unit=unit,
+                    nValue=battery,
+                    sValue=str(battery),
+                    Image=Images[image_key].ID,
+                )
 
         if self.__runAgain <= 0:
             self.__runAgain = self.__HEARTBEATS2MIN
@@ -197,7 +198,7 @@ class BasePlugin:
         #
         # check if images are in database
         for key, value in self.__IMAGES.items():
-            if key not in Images:
+            if "{}_{}".format(Parameters["Key"], key) not in Images:
                 Domoticz.Image(value).Create()
         #
         # log config
@@ -302,49 +303,41 @@ def devices_2_log():
 # ********************************************************************************
 # Plugin routines
 # ********************************************************************************
-def update_device_value(unit, nValue, sValue, TimedOut=0, AlwaysUpdate=False):
-    Domoticz.Debug("update_device_value: {} - {} - {}".format(unit, nValue, sValue))
+def update_device(unit, **kwargs):
     if unit in Devices:
-        if (
-            Devices[unit].nValue != nValue
-            or Devices[unit].sValue != sValue
-            or Devices[unit].TimedOut != TimedOut
-            or AlwaysUpdate
-        ):
-            Devices[unit].Update(nValue=nValue, sValue=str(sValue), TimedOut=TimedOut)
-            Domoticz.Debug(
-                "update_device {}: {} - '{}'".format(Devices[unit].Name, nValue, sValue)
-            )
-
-
-def update_device_options(unit, options={}):
-    Domoticz.Debug("update_device_options: {} - {}".format(unit, image_key))
-    if unit in Devices:
-        if Devices[unit].Options != options:
-            Devices[unit].Update(
-                nValue=Devices[unit].nValue,
-                sValue=Devices[unit].sValue,
-                Options=options,
-            )
-            Domoticz.Debug(
-                "update_device_options: {} = {}".format(Devices[unit].Name, options)
-            )
-
-
-def update_device_image(unit, image_id):
-    Domoticz.Debug("update_device_image: {} - {}".format(unit, image_id))
-    if unit in Devices:
-        if Devices[unit].Image != image_id:
-            Devices[unit].Update(
-                nValue=Devices[unit].nValue,
-                sValue=Devices[unit].sValue,
-                Image=image_id,
-            )
-            Domoticz.Debug(
-                "update_device_image: {} = {}".format(
-                    Devices[unit].Name, image_id
-                )
-            )
+        update_args = {}
+        # Check for the required arguments
+        if "nValue" in kwargs:
+            nValue = kwargs["nValue"]
+        else:
+            nValue = Devices[unit].nValue
+        update_args["nValue"] = nValue
+        Domoticz.Debug("nValue.........: {}".format(nValue))
+        #
+        if "sValue" in kwargs:
+            sValue = kwargs["sValue"]
+        else:
+            sValue = Devices[unit].sValue
+        update_args["sValue"] = sValue
+        Domoticz.Debug("sValue.........: {}".format(sValue))
+        #
+        change = False
+        if nValue != Devices[unit].nValue or sValue != Devices[unit].sValue:
+            change = True
+        # Check for the optional arguments
+        for arg in kwargs:
+            if arg == "TimedOut":
+                if kwargs[arg] != Devices[unit].TimedOut:
+                    change = True
+                    update_args[arg] = kwargs[arg]
+                Domoticz.Debug("TimedOut.......: {}".format(kwargs[arg]))
+            if arg == "Image":
+                if kwargs[arg] != Devices[unit].Image:
+                    change = True
+                    update_args[arg] = kwargs[arg]
+                Domoticz.Debug("Image..........: {}".format(kwargs[arg]))
+        if change:
+            Devices[unit].Update(**update_args)
 
 
 def http_2_log(httpDict):
@@ -357,225 +350,3 @@ def http_2_log(httpDict):
                     Domoticz.Debug("........'" + y + "':'" + str(httpDict[x][y]) + "'")
             else:
                 Domoticz.Debug("....'" + x + "':'" + str(httpDict[x]) + "'")
-
-
-# ********************************************************************************
-# Calls to the devices
-# ********************************************************************************
-
-# Domoticz
-
-
-class hardware:
-    """
-        Hardware IDs 
-    """
-
-    OPENZWAVE_USB = 21
-    PHILIPS_HUE_BRIDGE = 38
-
-    hardware = {OPENZWAVE_USB, PHILIPS_HUE_BRIDGE}
-
-
-class DOM_Batteries:
-    """
-        Scan for battery devices which are not created by eg. Philips Hue or OpenZwave USB
-    """
-
-    __dom_api = None
-    __nodes = {}
-
-    def __init__(self):
-        self.__dom_api = DOM_API()
-
-    def nodes(self):
-        self.__init_nodes()
-        return self.__nodes
-
-    def __init_nodes(self):
-        # Test with a Dummy Custom device and update with /json.htm?type=command&param=udevice&idx={}&nvalue=0&svalue=123&battery=80
-        # json.htm?type=devices&displayhidden=1
-        payload = self.__dom_api.DOM_result("type=devices&displayhidden=1")
-        if payload:
-            for result_dict in payload:
-                if int(result_dict.get("HardwareID")) not in hardware.hardware:
-                    if result_dict.get("BatteryLevel") <= 100:
-                        Domoticz.Debug(
-                            "{}: Found device with battery: {} on {}".format(
-                                self.__class__.__name__,
-                                result_dict.get("idx"),
-                                result_dict.get("Name"),
-                            )
-                        )
-                        # Make sure that the device id is unique
-                        deviceid = "{}-{}".format(
-                            result_dict.get("HardwareID"), result_dict.get("ID")
-                        )
-                        if deviceid not in self.__nodes:
-                            self.__nodes[deviceid] = {}
-                            self.__nodes[deviceid]["name"] = result_dict.get("Name")
-                        #
-                        self.__nodes[deviceid]["battery"] = result_dict.get(
-                            "BatteryLevel"
-                        )
-                        if deviceid in self.__nodes:
-                            Domoticz.Debug(
-                                "{}: {} added!!!".format(
-                                    self.__class__.__name__, deviceid
-                                )
-                            )
-            Domoticz.Debug(
-                "{}: nodes: {}".format(self.__class__.__name__, self.__nodes)
-            )
-
-
-class DOM_OpenZwave_USB:
-
-    __dom_api = None
-    __nodes = {}
-
-    def __init__(self):
-        self.__dom_api = DOM_API()
-
-    def nodes(self):
-        self.__init_nodes()
-        return self.__nodes
-
-    def __init_nodes(self):
-        payload = self.__dom_api.DOM_result("type=hardware")
-        if payload:
-            for result_dict in payload:
-                if int(result_dict.get("Type")) == hardware.OPENZWAVE_USB:
-                    Domoticz.Debug(
-                        "{}: Found OpenZWave USB: {} on {}:{} - {}".format(
-                            self.__class__.__name__,
-                            result_dict.get("idx"),
-                            result_dict.get("Address"),
-                            result_dict.get("Port"),
-                            result_dict.get("Username"),
-                        )
-                    )
-                    hwid = result_dict.get("idx")
-                    # type=command&param=zwavegetbatterylevels&idx={}
-
-
-class DOM_Philips_Hue_Bridge:
-
-    __dom_api = None
-    __nodes = {}
-
-    def __init__(self):
-        self.__dom_api = DOM_API()
-
-    def nodes(self):
-        self.__init_nodes()
-        return self.__nodes
-
-    def __init_nodes(self):
-        payload = self.__dom_api.DOM_result("type=hardware")
-        if payload:
-            for result_dict in payload:
-                if int(result_dict.get("Type")) == hardware.PHILIPS_HUE_BRIDGE:
-                    Domoticz.Debug(
-                        "{}: Found Philips Hue Bridge: {} on {}:{} - {}".format(
-                            self.__class__.__name__,
-                            result_dict.get("idx"),
-                            result_dict.get("Address"),
-                            result_dict.get("Port"),
-                            result_dict.get("Username"),
-                        )
-                    )
-                    hwid = result_dict.get("idx")
-                    # As far as I know, only the Philips Hue sensors have batteries
-                    sensors = self.__dom_api.request(
-                        "http://{}:{}/api/{}/sensors".format(
-                            result_dict.get("Address"),
-                            result_dict.get("Port"),
-                            result_dict.get("Username"),
-                        )
-                    )
-                    Domoticz.Debug(
-                        "{}: sensors: {}".format(self.__class__.__name__, sensors)
-                    )
-                    for v in sensors.values():
-                        battery = v.get("config").get("battery")
-                        if battery is not None:
-                            # Make sure that the device id is unique
-                            deviceid = "{}-{}".format(hwid, v.get("uniqueid"))
-                            name = v.get("name")
-                            Domoticz.Debug(
-                                "{}: {} - {}: {}".format(
-                                    self.__class__.__name__, deviceid, name, battery
-                                )
-                            )
-                            if deviceid not in self.__nodes:
-                                self.__nodes[deviceid] = {}
-                                self.__nodes[deviceid]["name"] = name
-                            self.__nodes[deviceid]["battery"] = battery
-                            if deviceid in self.__nodes:
-                                Domoticz.Debug(
-                                    "{}: {} added!!!".format(
-                                        self.__class__.__name__, deviceid
-                                    )
-                                )
-                    Domoticz.Debug(
-                        "{}: nodes: {}".format(self.__class__.__name__, self.__nodes)
-                    )
-
-
-class DOM_API:
-
-    __DOM_PROTOCOL = "http"
-    __DOM_ENDPOINT = "localhost"
-    __DOM_PORT = "8080"
-    __DOM_URL = "json.htm"
-
-    def __init__(self):
-        self.__DOM_ENDPOINT = self.ip()
-
-    def DOM_result(self, command):
-        url = "{}://{}:{}/{}?{}".format(
-            self.__DOM_PROTOCOL,
-            self.__DOM_ENDPOINT,
-            self.__DOM_PORT,
-            self.__DOM_URL,
-            parse.quote(command, safe="&="),
-        )
-        Domoticz.Debug("Calling Domoticz Json/API: {}".format(url))
-        return self.DOM_request(url)
-
-    def DOM_request(self, url):
-        result = None
-        content = self.request(url)
-        if content.get("status") == "OK":
-            result = content.get("result")
-            # Domoticz.Debug("result: {}".format(result))
-        else:
-            Domoticz.Error(
-                "Domoticz API returned an error: status = {}".format(content["status"])
-            )
-            result = None
-        return result
-
-    def request(self, url):
-        # try:
-        Domoticz.Debug("url: {}".format(url))
-        req = request.Request(url, headers={"Cache-Control": "no-cache"})
-        response = request.urlopen(req)
-        # Domoticz.Log("response.status: {}".format(response.status))
-        if response.status == 200:
-            content = json.loads(response.read().decode("utf-8"))
-            # Domoticz.Log("content: {}".format(content))
-        else:
-            Domoticz.Error("Domoticz API: http error = {}".format(response.status))
-        # except:
-        #     Domoticz.Error("Error calling '{}'".format(url))
-        return content
-
-    def ip(self):
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        try:
-            s.connect(("8.8.8.8", 1))
-        except socket.error:
-            return None
-        return s.getsockname()[0]
