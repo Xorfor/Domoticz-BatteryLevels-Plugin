@@ -191,20 +191,10 @@ class BasePlugin:
         # parameters
         Domoticz.Debugging(int(Parameters["Mode6"]))
         Domoticz.Debug("{}: on_start".format(self.__class__.__name__))
-        self.__DOM_ENDPOINT = "{}".format(Parameters["Address"])
-        self.__DOM_PORT = "{}".format(Parameters["Port"])
-        Domoticz.Debug(
-            "{}: self.__API_ENDPOINT: {}".format(
-                self.__class__.__name__, self.__DOM_ENDPOINT
-            )
-        )
-        Domoticz.Debug(
-            "{}: self.__API_PORT: {}".format(self.__class__.__name__, self.__DOM_PORT)
-        )
         #
         # check if images are in database
         for key, value in self.__IMAGES.items():
-            if "{}_{}".format(Parameters["Key"], key) not in Images:
+            if key not in Images:
                 Domoticz.Image(value).Create()
         #
         # log config
