@@ -7,6 +7,6 @@ class hardware:
     """
 
     OPENZWAVE_USB = 21
-    PHILIPS_HUE_BRIDGE = 38
+    # PHILIPS_HUE_BRIDGE = 38
 
-    hardware = {OPENZWAVE_USB, PHILIPS_HUE_BRIDGE}
+    hardware = {OPENZWAVE_USB}

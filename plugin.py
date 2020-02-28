@@ -21,7 +21,7 @@ import Domoticz
 from enum import IntEnum, unique  # , auto
 from hardware import *
 from DOM_batteries import DOM_Batteries
-from DOM_Philips_Hue_Bridge import DOM_Philips_Hue_Bridge
+# from DOM_Philips_Hue_Bridge import DOM_Philips_Hue_Bridge
 from DOM_OpenZwave_USB import DOM_OpenZwave_USB
 
 @unique
@@ -100,9 +100,9 @@ class BasePlugin:
         self.__runAgain -= 1
         nodes = None
         # There is no need to monitor all device at once. So check the hardware every heartbeat one.
-        if self.__runAgain == 1:
+        # if self.__runAgain == 1:
             # Find/update Philips Hue battery devices
-            nodes = self.__dom_hue.nodes()
+            # nodes = self.__dom_hue.nodes()
         #
         if self.__runAgain == 2:
             # Find/update Domoticz battery devices
@@ -201,7 +201,7 @@ class BasePlugin:
         config_2_log()
         #
         # Initialize all hardware classes
-        self.__dom_hue = DOM_Philips_Hue_Bridge()
+        # self.__dom_hue = DOM_Philips_Hue_Bridge()
         self.__dom_bat = DOM_Batteries()
         self.__dom_zwave = DOM_OpenZwave_USB()
 
