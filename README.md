@@ -12,8 +12,8 @@ This plugin will scan for battery levels of the 'normal' Domoticz devices.
 ### Z-Wave devices
 Implemented, using the latest Domoticz API/json url's. Not tested yet, I am not on the latest beta version of Domoticz, because of the problems with the latest Open Z-Wave interface.
 
-### Philips Hue
-This plugin will monitor the batterylevels of the sensors from eg. the Hue Dimmer Switch (even the Philips Hue app does not show you this battery level).
+~~### Philips Hue
+This plugin will monitor the batterylevels of the sensors from eg. the Hue Dimmer Switch (even the Philips Hue app does not show you this battery level).~~
 
 ## Installation
 1. Clone repository into your Domoticz plugins folder
