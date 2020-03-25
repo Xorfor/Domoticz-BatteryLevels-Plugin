@@ -28,7 +28,7 @@ class DOM_Batteries:
         payload = self.__dom_api.DOM_result("type=devices&displayhidden=1")
         if payload:
             for result_dict in payload:
-                if int(result_dict.get("HardwareID")) not in hardware.hardware:
+                if int(result_dict.get("HardwareTypeVal")) not in hardware.hardware:
                     if result_dict.get("BatteryLevel") <= 100:
                         Domoticz.Debug(
                             "{}: Found device with battery: {} on {}".format(
