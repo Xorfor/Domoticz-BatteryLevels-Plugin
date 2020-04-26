@@ -3,6 +3,8 @@
 This is the very first version from my attempt to monitor the battery levels of ALL devices in Domoticz. There is a Domoticz Python Plugin to monitor battery levels of Z-Wave devices (https://github.com/999LV/BatteryLevel) and you can set the Battery Low Level is the Domoticz Setting. But there is no further log in Domoticz about battery levels in the devices.
 
 **Please let me know your findings!!!**
+## Prerequisited
+This Domoticz Plugin requires Domoticz 2020.2
 
 ## Currently supported
 
