@@ -6,7 +6,7 @@
 #
 
 """
-<plugin key="xfr_batterylevels" name="Battery levels" author="Xorfor" version="1.0.0" wikilink="https://github.com/Xorfor/Domoticz-BatteryLevels-Plugin">
+<plugin key="xfr_batterylevels" name="Battery levels" author="Xorfor" version="1.1.0" wikilink="https://github.com/Xorfor/Domoticz-BatteryLevels-Plugin">
     <params>
         <param field="Address" label="Domoticz IP Address" width="200px" required="true" default="localhost"/>
         <param field="Port" label="Port" width="40px" required="true" default="8080"/>
