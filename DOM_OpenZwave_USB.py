@@ -11,8 +11,8 @@ class DOM_OpenZwave_USB:
     __dom_api = None
     __nodes = {}
 
-    def __init__(self):
-        self.__dom_api = DOM_API()
+    def __init__(self,ip,port):
+        self.__dom_api = DOM_API(ip,port)
 
     def nodes(self):
         Domoticz.Debug("{}.nodes".format(self.__class__.__name__))

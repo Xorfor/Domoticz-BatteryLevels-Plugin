@@ -16,8 +16,9 @@ class DOM_API:
     __DOM_PORT = "8080"
     __DOM_URL = "json.htm"
 
-    def __init__(self):
-        self.__DOM_ENDPOINT = self.ip()
+    def __init__(self, ip=__DOM_ENDPOINT, port=__DOM_PORT):
+        self.__DOM_ENDPOINT = ip
+        self.__DOM_PORT=port
 
     def DOM_result(self, command):
         url = "{}://{}:{}/{}?{}".format(

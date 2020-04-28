@@ -8,6 +8,8 @@
 """
 <plugin key="xfr_batterylevels" name="Battery levels" author="Xorfor" version="1.0.0" wikilink="https://github.com/Xorfor/Domoticz-BatteryLevels-Plugin">
     <params>
+        <param field="Address" label="Domoticz IP Address" width="200px" required="true" default="localhost"/>
+        <param field="Port" label="Port" width="40px" required="true" default="8080"/>
         <param field="Mode6" label="Debug" width="75px">
             <options>
                 <option label="False" value="0" default="true"/>
@@ -21,8 +23,10 @@ import Domoticz
 from enum import IntEnum, unique  # , auto
 from hardware import *
 from DOM_batteries import DOM_Batteries
+
 # from DOM_Philips_Hue_Bridge import DOM_Philips_Hue_Bridge
 from DOM_OpenZwave_USB import DOM_OpenZwave_USB
+
 
 @unique
 class used(IntEnum):
@@ -57,7 +61,9 @@ class BasePlugin:
     """
 
     __HEARTBEATS2MIN = 6
-    __MINUTES = 1 # Now: update every minute for debugging. Will be 60 (every hour) in the future.
+    __MINUTES = (
+        1
+    )  # Now: update every minute for debugging. Will be 60 (every hour) in the future.
 
     ########################################################################################
 
@@ -101,10 +107,11 @@ class BasePlugin:
         nodes = None
         # There is no need to monitor all device at once. So check the hardware every heartbeat one.
         # if self.__runAgain == 1:
-            # Find/update Philips Hue battery devices
-            # nodes = self.__dom_hue.nodes()
+        # Find/update Philips Hue battery devices
+        # nodes = self.__dom_hue.nodes()
         #
         if self.__runAgain == 2:
+            settings_2_log()
             # Find/update Domoticz battery devices
             nodes = self.__dom_bat.nodes()
         #
@@ -114,18 +121,20 @@ class BasePlugin:
         #
         if nodes:
             for deviceid, values in nodes.items():
+                max_unit = 0
                 unit = None
                 for dev in Devices:
+                    max_unit = max(Devices[dev].Unit, max_unit)
                     if Devices[dev].DeviceID == deviceid:
-                        unit = Devices[dev].Unit
                         Domoticz.Debug(
                             "{}: Found device {} for {}".format(
                                 self.__class__.__name__, unit, deviceid
                             )
                         )
+                        unit = Devices[dev].Unit
                         break
                 if not unit:
-                    unit = len(Devices) + 1
+                    unit = max_unit + 1
                     Domoticz.Debug(
                         "{}: No device found for {}! Create new one with {}".format(
                             self.__class__.__name__, deviceid, unit
@@ -202,8 +211,12 @@ class BasePlugin:
         #
         # Initialize all hardware classes
         # self.__dom_hue = DOM_Philips_Hue_Bridge()
-        self.__dom_bat = DOM_Batteries()
-        self.__dom_zwave = DOM_OpenZwave_USB()
+        self.__dom_bat = DOM_Batteries(
+            ip=Parameters["Address"], port=Parameters["Port"]
+        )
+        self.__dom_zwave = DOM_OpenZwave_USB(
+            ip=Parameters["Address"], port=Parameters["Port"]
+        )
 
     def on_stop(self):
         Domoticz.Debug("{}: onstop".format(self.__class__.__name__))
