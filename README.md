@@ -1,3 +1,12 @@
+# NOT MAINTAINED ANYMORE!!!
+I am disappointed in the way Domoticz developes: 
+* 1 stable version per year, I had to wait 4 months until a bug was fixed
+* no reaction on reported bugs, also if you give a direction for solution
+* lost data after upgrade to a new stable versions
+* etc.
+
+So I moved to Home Assistant, and have no time/environment to maintain this plugin
+
 # Domoticz Battery levels
 
 This is the very first version from my attempt to monitor the battery levels of ALL devices in Domoticz. There is a Domoticz Python Plugin to monitor battery levels of Z-Wave devices (https://github.com/999LV/BatteryLevel) and you can set the Battery Low Level is the Domoticz Setting. But there is no further log in Domoticz about battery levels in the devices.
